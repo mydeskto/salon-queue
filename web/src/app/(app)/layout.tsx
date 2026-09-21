@@ -83,9 +83,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading || !user || user.role === 'kiosk') {
     return (
-      <div className="flex min-h-screen">
+      <div className="flex h-screen overflow-hidden">
         <div className="hidden w-64 shrink-0 bg-brand-950 lg:block" />
-        <div className="mx-auto w-full max-w-7xl space-y-4 px-6 py-8">
+        <div className="mx-auto w-full max-w-7xl space-y-4 overflow-y-auto px-6 py-8">
           <Skeleton className="h-9 w-64" />
           <Skeleton className="h-40 w-full" />
           <Skeleton className="h-40 w-full" />
@@ -98,19 +98,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const sidebarContent = (
     <>
-      <div className="flex items-center gap-2 px-5 py-5">
+      <div className="flex shrink-0 items-center gap-2 px-5 py-5">
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-accent-500 text-sm font-bold text-white">
           Q
         </span>
         <span className="text-base font-bold tracking-tight">Salon Queue</span>
       </div>
 
-      <div className="mx-4 mb-4 flex items-center justify-between rounded-lg bg-white/5 px-3 py-2.5 text-sm">
+      <div className="mx-4 mb-4 flex shrink-0 items-center justify-between rounded-lg bg-white/5 px-3 py-2.5 text-sm">
         <span className="truncate font-medium text-white/90">{user.salonName ?? 'Platform'}</span>
         <ChevronDown className="h-4 w-4 shrink-0 text-white/40" />
       </div>
 
-      <nav className="flex-1 space-y-0.5 px-3">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3">
         {nav.map((item) => {
           const active = pathname === item.href;
           return (
@@ -129,7 +129,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         })}
       </nav>
 
-      <div className="p-3">
+      <div className="shrink-0 p-3">
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 text-white/60 hover:bg-white/5 hover:text-white"
@@ -143,9 +143,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-screen bg-muted/40">
-      {/* Desktop sidebar */}
-      <aside className="no-print hidden w-64 shrink-0 flex-col bg-brand-950 text-white lg:flex">
+    <div className="flex h-screen overflow-hidden bg-muted/40">
+      {/* Desktop sidebar — fixed height, never scrolls with the page */}
+      <aside className="no-print hidden h-screen w-64 shrink-0 flex-col bg-brand-950 text-white lg:flex">
         {sidebarContent}
       </aside>
 
@@ -170,9 +170,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       ) : null}
 
-      {/* Main column */}
-      <div className="flex min-h-screen flex-1 flex-col">
-        <header className="no-print sticky top-0 z-40 border-b border-border bg-background/95 px-6 py-3 backdrop-blur">
+      {/* Main column — header stays put, only the content area scrolls */}
+      <div className="flex h-screen flex-1 flex-col overflow-hidden">
+        <header className="no-print shrink-0 border-b border-border bg-background/95 px-6 py-3 backdrop-blur">
           <div className="flex items-center gap-4">
             <button
               aria-label="Open menu"
@@ -198,7 +198,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-7xl flex-1 overflow-y-auto px-6 py-8">
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -112,6 +112,12 @@ export interface KioskPairingResult {
   expiresAt: string;
 }
 
+/** Returned once, right after a super admin resets a salon admin's password. */
+export interface PasswordResetResult {
+  email: string;
+  password: string;
+}
+
 export interface Appointment {
   id: string;
   salonId: string;

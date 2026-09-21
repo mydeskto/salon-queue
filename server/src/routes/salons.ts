@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs';
-import { randomBytes } from 'node:crypto';
 import { Router } from 'express';
-import { and, asc, eq, gte, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, sql } from 'drizzle-orm';
 import { bills, chairs, employees, getDb, salons, tokens, users } from '../../db/src';
 import {
   createSalonSchema,
@@ -9,8 +8,10 @@ import {
   type PlatformOverview,
   type Salon,
   type SalonWithStats,
+  type StaffUser,
 } from '../../shared/src';
 import { authenticate, requireRole, resolveSalonId } from '../auth/middleware';
+import { generateStrongPassword } from '../lib/password';
 import { conflict, notFound } from '../lib/errors';
 import { asyncHandler, validateBody } from '../lib/validate';
 
@@ -70,10 +71,6 @@ salonsRouter.patch(
 );
 
 salonsRouter.use(authenticate, requireRole('super_admin'));
-
-function generatePassword(): string {
-  return randomBytes(9).toString('base64url');
-}
 
 async function salonStats(): Promise<Map<string, Omit<SalonWithStats, keyof Salon>>> {
   const db = getDb();
@@ -153,17 +150,23 @@ salonsRouter.get(
     const rows = await db.select().from(salons).orderBy(asc(salons.name));
     const stats = await salonStats();
 
+    // Raw sql`` template params are bound to postgres.js as-is, and it
+    // doesn't accept a bare Date there the way Drizzle's query-builder
+    // helpers (e.g. gte()) do — pass ISO strings instead.
+    const startOfDayIso = startOfDay.toISOString();
+    const startOfMonthIso = startOfMonth.toISOString();
+
     const [tokenTotals] = await db
       .select({
-        today: sql<number>`count(*) filter (where ${tokens.createdAt} >= ${startOfDay})::int`,
-        month: sql<number>`count(*) filter (where ${tokens.createdAt} >= ${startOfMonth})::int`,
+        today: sql<number>`count(*) filter (where ${tokens.createdAt} >= ${startOfDayIso}::timestamptz)::int`,
+        month: sql<number>`count(*) filter (where ${tokens.createdAt} >= ${startOfMonthIso}::timestamptz)::int`,
       })
       .from(tokens);
 
     const [revenueTotals] = await db
       .select({
-        today: sql<string>`coalesce(sum(${bills.total}) filter (where ${bills.createdAt} >= ${startOfDay}), 0)::text`,
-        month: sql<string>`coalesce(sum(${bills.total}) filter (where ${bills.createdAt} >= ${startOfMonth}), 0)::text`,
+        today: sql<string>`coalesce(sum(${bills.total}) filter (where ${bills.createdAt} >= ${startOfDayIso}::timestamptz), 0)::text`,
+        month: sql<string>`coalesce(sum(${bills.total}) filter (where ${bills.createdAt} >= ${startOfMonthIso}::timestamptz), 0)::text`,
       })
       .from(bills);
 
@@ -208,7 +211,7 @@ salonsRouter.post(
       throw conflict('A user with this email already exists');
     }
 
-    const password = input.adminPassword ?? generatePassword();
+    const password = input.adminPassword ?? generateStrongPassword();
     const salon = await db.transaction(async (tx) => {
       const [created] = await tx
         .insert(salons)
@@ -252,6 +255,65 @@ salonsRouter.patch(
       throw notFound('Salon not found');
     }
     res.json(toSalon(row));
+  }),
+);
+
+/** Salon admin accounts for one salon, for the super admin's salon detail view. */
+salonsRouter.get(
+  '/:salonId/admins',
+  asyncHandler(async (req, res) => {
+    const rows = await getDb()
+      .select()
+      .from(users)
+      .where(and(eq(users.salonId, req.params.salonId), inArray(users.role, ['salon_admin'])))
+      .orderBy(asc(users.name));
+
+    const payload: StaffUser[] = rows.map((row) => ({
+      id: row.id,
+      salonId: row.salonId,
+      name: row.name,
+      email: row.email,
+      phone: row.phone,
+      role: row.role,
+      isActive: row.isActive,
+      createdAt: row.createdAt.toISOString(),
+      status: row.passwordHash ? 'active' : 'invited',
+      lastSeenAt: null,
+      pairingCodeExpiresAt: null,
+    }));
+    res.json(payload);
+  }),
+);
+
+/**
+ * Platform-level password reset for a salon admin account — recovers a
+ * salon that's locked out (e.g. the generated password was lost) without
+ * needing database access. Returns the new password once; it is never
+ * stored or logged in plaintext.
+ */
+salonsRouter.post(
+  '/:salonId/admins/:userId/reset-password',
+  asyncHandler(async (req, res) => {
+    const db = getDb();
+    const password = generateStrongPassword();
+
+    const [row] = await db
+      .update(users)
+      .set({ passwordHash: bcrypt.hashSync(password, 10) })
+      .where(
+        and(
+          eq(users.id, req.params.userId),
+          eq(users.salonId, req.params.salonId),
+          eq(users.role, 'salon_admin'),
+        ),
+      )
+      .returning();
+
+    if (!row) {
+      throw notFound('Salon admin account not found');
+    }
+
+    res.json({ email: row.email, password });
   }),
 );
 

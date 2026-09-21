@@ -1,15 +1,17 @@
 "use client";
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import type { CheckInResult, KioskSalonInfo } from '@shared/index';
-import { mediaUrl, publicApi } from '@/lib/api';
+import { api, mediaUrl, publicApi } from '@/lib/api';
 import { useLoader } from '@/lib/usePolling';
 import { useSalonEvents } from '@/lib/socket';
 import { money } from '@/lib/format';
 import { ErrorBanner } from '@/components/ui';
 import { Skeleton } from '@/components/ui/skeleton';
+
+const HEARTBEAT_INTERVAL_MS = 60_000;
 
 export default function KioskCheckInPage() {
   const params = useParams<{ salonId: string }>();
@@ -21,6 +23,18 @@ export default function KioskCheckInPage() {
     [salonId],
   );
   useSalonEvents(salonId, reload);
+
+  // Lets the admin's staff page show "online now" for this screen. A no-op
+  // (silently ignored) if this browser was never paired as a kiosk device —
+  // e.g. someone just previewing the check-in screen without a session.
+  useEffect(() => {
+    const ping = () => {
+      api('/api/auth/heartbeat', { method: 'POST' }).catch(() => undefined);
+    };
+    ping();
+    const timer = setInterval(ping, HEARTBEAT_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, []);
 
   const [started, setStarted] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);

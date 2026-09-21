@@ -27,10 +27,14 @@ interface RequestOptions {
   /** Kept for call-site clarity; auth now travels via the httpOnly cookie on every request. */
   auth?: boolean;
   query?: Record<string, string | number | undefined | null>;
+  /** Request timeout in ms, after which the call fails instead of hanging a spinner forever. */
+  timeoutMs?: number;
 }
 
+const DEFAULT_TIMEOUT_MS = 20_000;
+
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, query } = options;
+  const { method = 'GET', body, query, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
   const url = new URL(`${BASE}${path}`);
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value !== undefined && value !== null && value !== '') {
@@ -41,15 +45,29 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['content-type'] = 'application/json';
 
-  const response = await fetch(url.toString(), {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: 'no-store',
-    // Sends/receives the httpOnly auth cookie on every request, including
-    // cross-port calls in dev (localhost:3000 -> localhost:4000).
-    credentials: 'include',
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      cache: 'no-store',
+      // Sends/receives the httpOnly auth cookie on every request, including
+      // cross-port calls in dev (localhost:3000 -> localhost:4000).
+      credentials: 'include',
+      signal: controller.signal,
+    });
+  } catch (cause) {
+    if (cause instanceof DOMException && cause.name === 'AbortError') {
+      throw new ApiError('The request took too long. Check your connection and try again.', 0);
+    }
+    throw new ApiError('Could not reach the server. Check your connection and try again.', 0);
+  } finally {
+    clearTimeout(timer);
+  }
 
   const text = await response.text();
   const payload: unknown = text ? JSON.parse(text) : null;

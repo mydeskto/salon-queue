@@ -219,25 +219,25 @@ export default function ReceptionPage() {
           <div className="space-y-3">
             {waiting.map((token, index) => (
               <Card key={token.id}>
-                <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
-                  <div>
+                <CardContent className="flex flex-col gap-3 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <p className="text-lg font-semibold">
                       #{index + 1} · {token.tokenNumber}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="truncate text-sm text-muted-foreground">
                       {token.customerName ?? 'Walk-in'} ·{' '}
                       {token.services.map((service) => service.name).join(', ')} · waiting{' '}
                       {minutesSince(token.createdAt)} min
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex shrink-0 items-center gap-2">
                     {token.chairId ? (
                       <Button type="button" onClick={() => move(token, 'in_service')}>
                         Start service ({token.chairLabel})
                       </Button>
                     ) : (
                       <Select onValueChange={(chairId) => assign(token, chairId)}>
-                        <SelectTrigger className="w-48">
+                        <SelectTrigger className="w-44">
                           <SelectValue placeholder="Assign chair…" />
                         </SelectTrigger>
                         <SelectContent>
@@ -249,7 +249,7 @@ export default function ReceptionPage() {
                         </SelectContent>
                       </Select>
                     )}
-                    <Button variant="destructive" type="button" onClick={() => move(token, 'cancelled')}>
+                    <Button variant="outline" size="sm" type="button" onClick={() => move(token, 'cancelled')}>
                       Cancel
                     </Button>
                   </div>

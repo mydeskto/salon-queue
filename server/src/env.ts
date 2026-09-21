@@ -15,6 +15,9 @@ export const env = {
   port: Number(process.env.PORT ?? 4000),
   nodeEnv: process.env.NODE_ENV ?? 'development',
   jwtSecret: required('JWT_SECRET', 'dev-secret-change-me'),
+  /** Bootstrap super admin — created automatically on first server start if no super_admin exists yet. */
+  bootstrapAdminEmail: process.env.BOOTSTRAP_ADMIN_EMAIL ?? 'admin@salonqueue.local',
+  bootstrapAdminName: process.env.BOOTSTRAP_ADMIN_NAME ?? 'Platform Owner',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '12h',
   /** Cookie max-age, in milliseconds, mirroring jwtExpiresIn's default (12h). */
   authCookieMaxAgeMs: Number(process.env.AUTH_COOKIE_MAX_AGE_MS ?? 12 * 60 * 60 * 1000),
