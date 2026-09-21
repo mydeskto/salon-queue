@@ -1,8 +1,9 @@
 "use client";
 
 import { Suspense, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { homeFor, useAuth } from '@/lib/auth';
 import { ErrorBanner } from '@/components/ui';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -38,13 +40,12 @@ function LoginForm() {
       router.push(next ?? homeFor(user));
     } catch (cause) {
       setError((cause as Error).message);
-    } finally {
       setBusy(false);
     }
   }
 
   return (
-    <form onSubmit={submit} className="w-full max-w-sm space-y-5">
+    <form onSubmit={submit} className="w-full max-w-sm space-y-4">
       <ErrorBanner message={error} />
       <div>
         <Label htmlFor="email">Email</Label>
@@ -52,6 +53,7 @@ function LoginForm() {
           id="email"
           type="email"
           autoComplete="username"
+          className="border-transparent bg-secondary/70 focus-visible:border-input focus-visible:bg-background"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required
@@ -59,26 +61,56 @@ function LoginForm() {
       </div>
       <div>
         <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          required
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="current-password"
+            className="border-transparent bg-secondary/70 pr-10 focus-visible:border-input focus-visible:bg-background"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
-      <Button className="w-full" size="lg" type="submit" disabled={busy}>
+
+      <Button
+        className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+        size="lg"
+        type="submit"
+        disabled={busy}
+      >
         {busy ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" /> Signing in…
           </>
         ) : (
-          <>
-            Sign in <ArrowRight className="h-4 w-4" />
-          </>
+          'Sign in'
         )}
       </Button>
+
+      <div className="flex items-center gap-3 pt-1">
+        <span className="h-px flex-1 bg-border" />
+        <span className="text-xs uppercase tracking-wide text-muted-foreground">or</span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 pt-1 text-center text-sm">
+        <Link href="/login/reception" className="text-accent-600 hover:text-accent-700 hover:underline">
+          Login as receptionist
+        </Link>
+        <Link href="/login/kiosk" className="text-accent-600 hover:text-accent-700 hover:underline">
+          Login as kiosk screen
+        </Link>
+      </div>
     </form>
   );
 }
@@ -86,37 +118,27 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <main className="grid min-h-screen bg-white lg:grid-cols-2">
-      {/* Left: brand banner */}
-      <div className="kiosk-shell relative hidden flex-col justify-between overflow-hidden p-12 lg:flex">
-        <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent-500/20 blur-3xl" />
-        <div className="absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-brand-400/20 blur-3xl" />
-
-        <p className="relative text-lg font-bold tracking-tight">Salon Queue</p>
-
-        <div className="relative animate-fade-in">
-          <span className="kiosk-badge">Multi-salon platform</span>
-          <h1 className="mt-5 max-w-md text-4xl font-bold leading-tight tracking-tight">
-            Check-in, chairs, and billing — all in one queue.
-          </h1>
-          <p className="mt-4 max-w-sm text-white/70">
-            Kiosk check-in, automatic chair assignment, reception billing, and real-time
-            reporting for every salon on the platform.
-          </p>
+      {/* Left: solid brand panel */}
+      <div className="relative hidden flex-col justify-between bg-brand-700 p-12 text-white lg:flex">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
+            <span className="h-4 w-4 rounded-sm bg-white" />
+          </span>
+          <span className="text-xl font-bold tracking-tight">Salon Queue</span>
         </div>
 
-        <p className="relative text-sm text-white/50">
-          &copy; {new Date().getFullYear()} Salon Queue
-        </p>
+        <blockquote className="max-w-sm text-lg italic leading-relaxed text-white/80">
+          &ldquo;The queue is the first impression. Make it effortless.&rdquo;
+          <footer className="mt-3 text-sm not-italic text-white/50">— Salon Queue</footer>
+        </blockquote>
       </div>
 
       {/* Right: sign in */}
       <div className="flex flex-col items-center justify-center px-6 py-16">
-        <div className="w-full max-w-sm animate-fade-in">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-brand-950">Sign in</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Reception, salon admin, platform admin, or a kiosk screen.
-            </p>
+        <div className="w-full max-w-sm">
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl font-bold text-foreground">Welcome Back!</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Sign in to your account to continue.</p>
           </div>
           <Suspense fallback={null}>
             <LoginForm />

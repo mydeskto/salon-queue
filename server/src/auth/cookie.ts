@@ -11,12 +11,16 @@ export const AUTH_COOKIE_NAME = 'salon_token';
  * and secure in production (browsers require this for cross-origin cookies
  * over HTTPS anyway).
  */
-export function setAuthCookie(res: Response, token: string): void {
+export function setAuthCookie(
+  res: Response,
+  token: string,
+  maxAge: number = env.authCookieMaxAgeMs,
+): void {
   res.cookie(AUTH_COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
     secure: env.nodeEnv === 'production',
-    maxAge: env.authCookieMaxAgeMs,
+    maxAge,
     path: '/',
   });
 }

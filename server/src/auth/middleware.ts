@@ -68,6 +68,16 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
   }
 }
 
+/**
+ * Updates lastSeenAt for the current kiosk device, fire-and-forget. Called
+ * from a lightweight heartbeat the kiosk check-in screen pings periodically
+ * — the check-in flow itself uses public/unauthenticated endpoints, so this
+ * is the only signal that tells an admin "this screen is online right now."
+ */
+export async function touchKioskLastSeen(userId: string): Promise<void> {
+  await getDb().update(users).set({ lastSeenAt: new Date() }).where(eq(users.id, userId));
+}
+
 export function requireRole(...roles: UserRole[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) {

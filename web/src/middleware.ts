@@ -22,6 +22,9 @@ export function middleware(request: NextRequest) {
 
   const hasCookie = request.cookies.has(AUTH_COOKIE_NAME);
   if (!hasCookie) {
+    // Always bounces to the one public /login page — never to the hidden
+    // super-admin URL, which must never appear in a redirect chain or it
+    // stops being hidden.
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('next', pathname);
     return NextResponse.redirect(loginUrl);

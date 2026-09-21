@@ -18,6 +18,15 @@ export const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '12h',
   /** Cookie max-age, in milliseconds, mirroring jwtExpiresIn's default (12h). */
   authCookieMaxAgeMs: Number(process.env.AUTH_COOKIE_MAX_AGE_MS ?? 12 * 60 * 60 * 1000),
+  /**
+   * Kiosk devices re-pairing requires an admin physically generating a new
+   * code, so their session should outlast a typical staff shift by a wide
+   * margin (default 90 days) rather than forcing daily re-pairing.
+   */
+  kioskJwtExpiresIn: process.env.KIOSK_JWT_EXPIRES_IN ?? '90d',
+  kioskAuthCookieMaxAgeMs: Number(
+    process.env.KIOSK_AUTH_COOKIE_MAX_AGE_MS ?? 90 * 24 * 60 * 60 * 1000,
+  ),
   corsOrigin: (process.env.CORS_ORIGIN ?? 'http://localhost:3000')
     .split(',')
     .map((origin) => origin.trim()),

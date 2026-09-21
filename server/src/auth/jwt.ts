@@ -8,8 +8,8 @@ export interface JwtPayload {
   salonId: string | null;
 }
 
-export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, env.jwtSecret, { expiresIn: env.jwtExpiresIn } as jwt.SignOptions);
+export function signToken(payload: JwtPayload, expiresIn: string = env.jwtExpiresIn): string {
+  return jwt.sign(payload, env.jwtSecret, { expiresIn } as jwt.SignOptions);
 }
 
 export function verifyToken(token: string): JwtPayload {

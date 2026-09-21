@@ -75,6 +75,8 @@ export interface Employee {
   onShift: boolean;
 }
 
+export type StaffAccountStatus = 'active' | 'invited' | 'unpaired';
+
 export interface StaffUser {
   id: string;
   salonId: string | null;
@@ -84,6 +86,30 @@ export interface StaffUser {
   role: UserRole;
   isActive: boolean;
   createdAt: string;
+  /**
+   * 'invited': a receptionist/salon_admin who hasn't accepted their email
+   * invite yet. 'unpaired': a kiosk device that hasn't redeemed a pairing
+   * code yet. 'active': normal, signed-in-capable account.
+   */
+  status: StaffAccountStatus;
+  /** Kiosk devices only — when the device last made an authenticated request. */
+  lastSeenAt: string | null;
+  /** Present only while an invite/pairing code is outstanding (never after redemption). */
+  pairingCodeExpiresAt: string | null;
+}
+
+/** Returned once, right after creating/resending an invite — never stored client-side. */
+export interface StaffInviteResult {
+  staff: StaffUser;
+  inviteUrl: string;
+  expiresAt: string;
+}
+
+/** Returned once, right after generating/regenerating a kiosk pairing code. */
+export interface KioskPairingResult {
+  staff: StaffUser;
+  code: string;
+  expiresAt: string;
 }
 
 export interface Appointment {

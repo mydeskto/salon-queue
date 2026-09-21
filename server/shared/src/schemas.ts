@@ -108,17 +108,26 @@ export const updateEmployeeSchema = z.object({
 });
 export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>;
 
-export const createStaffUserSchema = z.object({
+/**
+ * Invites a human staff member (receptionist or salon_admin) by email —
+ * no password is set by the admin. The invitee gets a link to
+ * /invite/:token where they choose their own password.
+ */
+export const inviteStaffUserSchema = z.object({
   name: z.string().min(2).max(120),
   email: z.string().email(),
   phone: z.string().max(40).optional(),
-  password: z.string().min(8),
-  role: z.enum(USER_ROLES).refine(
-    (r) => r === 'receptionist' || r === 'salon_admin' || r === 'kiosk',
-    { message: 'role must be receptionist, salon_admin, or kiosk' },
-  ),
+  role: z.enum(USER_ROLES).refine((r) => r === 'receptionist' || r === 'salon_admin', {
+    message: 'role must be receptionist or salon_admin',
+  }),
 });
-export type CreateStaffUserInput = z.infer<typeof createStaffUserSchema>;
+export type InviteStaffUserInput = z.infer<typeof inviteStaffUserSchema>;
+
+/** Registers a kiosk screen device. No password — it's paired with a short code instead. */
+export const createKioskDeviceSchema = z.object({
+  name: z.string().min(2).max(120),
+});
+export type CreateKioskDeviceInput = z.infer<typeof createKioskDeviceSchema>;
 
 export const updateStaffUserSchema = z.object({
   name: z.string().min(2).max(120).optional(),
@@ -127,6 +136,23 @@ export const updateStaffUserSchema = z.object({
   isActive: z.boolean().optional(),
 });
 export type UpdateStaffUserInput = z.infer<typeof updateStaffUserSchema>;
+
+/** Step 2 of the receptionist/admin invite flow: the invitee sets their own password. */
+export const acceptInviteSchema = z.object({
+  token: z.string().min(10),
+  password: z.string().min(8),
+});
+export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;
+
+/** A kiosk tablet redeems the short-lived pairing code shown by the admin. */
+export const redeemPairingCodeSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .transform((value) => value.toUpperCase())
+    .pipe(z.string().regex(/^[A-Z0-9]{6}$/, 'must be a 6-character code')),
+});
+export type RedeemPairingCodeInput = z.infer<typeof redeemPairingCodeSchema>;
 
 export const kioskCheckInSchema = z.object({
   salonId: uuid,

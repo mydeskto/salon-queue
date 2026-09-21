@@ -25,6 +25,46 @@ export function Stat({ label, value, hint }: { label: string; value: string; hin
   );
 }
 
+const GRADIENT_TONES = {
+  purple: 'from-brand-600 to-brand-800',
+  violet: 'from-brand-400 to-brand-600',
+  orange: 'from-accent-400 to-accent-600',
+  slate: 'from-slate-500 to-slate-700',
+} as const;
+
+export type GradientTone = keyof typeof GRADIENT_TONES;
+
+/** Reference-style gradient KPI card with a large watermark icon in the corner. */
+export function GradientStat({
+  label,
+  value,
+  hint,
+  tone,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  tone: GradientTone;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <div
+      className={cn(
+        'relative overflow-hidden rounded-xl bg-gradient-to-br p-5 text-white shadow-sm',
+        GRADIENT_TONES[tone],
+      )}
+    >
+      <Icon className="absolute -right-3 -top-3 h-24 w-24 text-white/10" />
+      <p className="relative text-xs font-semibold uppercase tracking-wide text-white/70">
+        {label}
+      </p>
+      <p className="relative mt-2 text-3xl font-bold">{value}</p>
+      {hint ? <p className="relative mt-1 text-xs text-white/70">{hint}</p> : null}
+    </div>
+  );
+}
+
 export function ErrorBanner({ message }: { message: string | null | undefined }) {
   if (!message) return null;
   return (
