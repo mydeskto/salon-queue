@@ -1,0 +1,44 @@
+{
+  "name": "@salon/server",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/src/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "db:generate": "drizzle-kit generate --config db/drizzle.config.ts",
+    "db:migrate": "tsx db/src/migrate.ts",
+    "db:seed": "tsx db/src/seed.ts",
+    "db:studio": "drizzle-kit studio --config db/drizzle.config.ts"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.38.3",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^2.4.0",
+    "node-thermal-printer": "^4.4.4",
+    "postgres": "^3.4.5",
+    "socket.io": "^4.8.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/morgan": "^1.9.9",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.10.5",
+    "drizzle-kit": "^0.30.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

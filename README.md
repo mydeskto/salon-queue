@@ -16,11 +16,21 @@ salon admins and a platform super admin.
 | Printing | ESC/POS (`node-thermal-printer`) with browser-print fallback |
 
 ```
-apps/web       Next.js front end (kiosk, reception, salon admin, super admin)
-apps/server    Express REST API + Socket.IO
-packages/db    Drizzle schema, migrations, seed
-packages/shared Enums, Zod schemas, API/event types shared by both apps
+server           Express REST API + Socket.IO — fully standalone project
+server/db        Drizzle schema, migrations, seed
+server/shared    Enums, Zod schemas, API/event types (server's local copy)
+web              Next.js front end (kiosk, reception, salon admin, super admin) — fully standalone project
+web/shared       Enums, Zod schemas, API/event types (web's local copy)
 ```
+
+`server` and `web` are two completely independent projects, each with its own
+`package.json`, lockfile, `node_modules`, `tsconfig.json`, and `.env`. There is
+no root-level install or workspace orchestration — install and run each one
+from inside its own folder.
+
+`shared` is intentionally duplicated into each app rather than kept as a
+shared package, so `web` and `server` don't depend on each other at all.
+Keep the two copies in sync by hand when the shared types/schemas change.
 
 ## Setup
 
@@ -29,22 +39,25 @@ packages/shared Enums, Zod schemas, API/event types shared by both apps
 createuser salon --createdb   # or use your own role
 createdb salon -O salon
 
-# 2. Environment
+# 2. Server
+cd server
 cp .env.example .env          # edit DATABASE_URL / JWT_SECRET
-
-# 3. Install, migrate, seed
 npm install
-npm run build -w @salon/shared && npm run build -w @salon/db
 npm run db:migrate
 npm run db:seed
+npm run dev                   # http://localhost:4000
 
-# 4. Run both apps (server :4000, web :3000)
-npm run dev
+# 3. Web (separate terminal)
+cd web
+cp .env.example .env
+npm install
+npm run dev                   # http://localhost:3000
 ```
 
-Useful scripts: `npm run db:generate` (new migration from schema changes),
-`npm run typecheck`, `npm run lint`, `npm run build`,
-`./scripts/smoke.sh` (end-to-end API check against a running server).
+Useful scripts (run from inside `server/` or `web/` respectively):
+`npm run db:generate` (new migration from schema changes, server only),
+`npm run typecheck`, `npm run lint` (web only), `npm run build`,
+`./scripts/smoke.sh` (end-to-end API check against a running server, run from repo root).
 
 ### Demo logins (from the seed, password `password123`)
 
