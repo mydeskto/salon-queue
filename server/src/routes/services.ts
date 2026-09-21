@@ -19,6 +19,7 @@ function toService(row: typeof servicesTable.$inferSelect): Service {
     category: row.category,
     price: row.price,
     durationMinutes: row.durationMinutes,
+    imageUrl: row.imageUrl,
     isActive: row.isActive,
   };
 }

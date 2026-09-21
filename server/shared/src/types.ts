@@ -47,6 +47,7 @@ export interface Service {
   category: string | null;
   price: string;
   durationMinutes: number;
+  imageUrl: string | null;
   isActive: boolean;
 }
 

@@ -22,6 +22,13 @@
       "when": 1790001328330,
       "tag": "0002_true_jubilee",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790009214434,
+      "tag": "0003_gorgeous_felicia_hardy",
+      "breakpoints": true
     }
   ]
 }

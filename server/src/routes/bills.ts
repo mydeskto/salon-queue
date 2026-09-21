@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import {
   billItems,
   bills,
@@ -153,15 +153,35 @@ billsRouter.post(
       .where(eq(tokenServices.tokenId, token.id));
 
     const bookedById = new Map(bookedServices.map((row) => [row.serviceId, row]));
-    const lineItems = (input.items ?? bookedServices.map((row) => ({
+    const requestedItems = input.items ?? bookedServices.map((row) => ({
       serviceId: row.serviceId,
       price: row.price,
-    }))).map((item) => {
+    }));
+
+    // Items not already booked on the token can still be billed — the
+    // receptionist may add a service the customer decided on at checkout.
+    // Look those up from the salon's active catalogue instead of rejecting.
+    const extraServiceIds = requestedItems
+      .map((item) => item.serviceId)
+      .filter((serviceId) => !bookedById.has(serviceId));
+    const extraServices = extraServiceIds.length
+      ? await db
+          .select({ id: servicesTable.id, name: servicesTable.name, isActive: servicesTable.isActive })
+          .from(servicesTable)
+          .where(and(eq(servicesTable.salonId, salonId), inArray(servicesTable.id, extraServiceIds)))
+      : [];
+    const extraById = new Map(extraServices.map((row) => [row.id, row]));
+
+    const lineItems = requestedItems.map((item) => {
       const booked = bookedById.get(item.serviceId);
-      if (!booked) {
-        throw badRequest(`Service ${item.serviceId} is not part of this token`);
+      if (booked) {
+        return { serviceId: item.serviceId, name: booked.name, price: item.price };
       }
-      return { serviceId: item.serviceId, name: booked.name, price: item.price };
+      const extra = extraById.get(item.serviceId);
+      if (!extra || !extra.isActive) {
+        throw badRequest(`Service ${item.serviceId} is not part of this token or salon`);
+      }
+      return { serviceId: item.serviceId, name: extra.name, price: item.price };
     });
 
     const subtotal = lineItems.reduce((sum, item) => sum + Number(item.price), 0);

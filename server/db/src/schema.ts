@@ -108,6 +108,7 @@ export const services = pgTable(
     category: varchar('category', { length: 80 }),
     price: numeric('price', { precision: 10, scale: 2 }).notNull(),
     durationMinutes: integer('duration_minutes').notNull().default(30),
+    imageUrl: varchar('image_url', { length: 500 }),
     isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },

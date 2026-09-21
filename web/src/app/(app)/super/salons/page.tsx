@@ -308,7 +308,7 @@ function ManageSalonDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{salon.name}</DialogTitle>
-          <DialogDescription>Manage this salon's details, admins, and status.</DialogDescription>
+          <DialogDescription>Manage this salon&rsquo;s details, admins, and status.</DialogDescription>
         </DialogHeader>
 
         <ErrorBanner message={error} />

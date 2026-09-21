@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Printer } from 'lucide-react';
-import type { Bill, PaymentMethod, TokenSummary } from '@shared/index';
+import { Plus, Printer, X } from 'lucide-react';
+import type { Bill, PaymentMethod, Service, TokenSummary } from '@shared/index';
 import { api } from '@/lib/api';
 import { useLoader } from '@/lib/usePolling';
 import { money } from '@/lib/format';
@@ -21,6 +21,12 @@ interface BillResponse {
   print: { printed: boolean; reason?: string };
 }
 
+interface LineItem {
+  serviceId: string;
+  name: string;
+  price: string;
+}
+
 const METHODS: PaymentMethod[] = ['cash', 'card', 'upi', 'other'];
 
 export default function CheckoutPage() {
@@ -30,8 +36,10 @@ export default function CheckoutPage() {
     () => api<TokenSummary>(`/api/tokens/${params.tokenId}`),
     [params.tokenId],
   );
+  const catalogue = useLoader<Service[]>(() => api<Service[]>('/api/services'), []);
 
-  const [prices, setPrices] = useState<Record<string, string>>({});
+  const [items, setItems] = useState<LineItem[]>([]);
+  const [addServiceId, setAddServiceId] = useState('');
   const [discount, setDiscount] = useState('0');
   const [taxRate, setTaxRate] = useState('0');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
@@ -41,12 +49,39 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!token.data) return;
-    setPrices(
-      Object.fromEntries(token.data.services.map((service) => [service.serviceId, service.price])),
+    setItems(
+      token.data.services.map((service) => ({
+        serviceId: service.serviceId,
+        name: service.name,
+        price: service.price,
+      })),
     );
   }, [token.data]);
 
-  const subtotal = Object.values(prices).reduce((sum, value) => sum + Number(value || 0), 0);
+  const bookedIds = useMemo(() => new Set(items.map((item) => item.serviceId)), [items]);
+  const addableServices = useMemo(
+    () => (catalogue.data ?? []).filter((service) => service.isActive && !bookedIds.has(service.id)),
+    [catalogue.data, bookedIds],
+  );
+
+  function updatePrice(serviceId: string, price: string) {
+    setItems((current) =>
+      current.map((item) => (item.serviceId === serviceId ? { ...item, price } : item)),
+    );
+  }
+
+  function removeItem(serviceId: string) {
+    setItems((current) => current.filter((item) => item.serviceId !== serviceId));
+  }
+
+  function addService() {
+    const service = addableServices.find((candidate) => candidate.id === addServiceId);
+    if (!service) return;
+    setItems((current) => [...current, { serviceId: service.id, name: service.name, price: service.price }]);
+    setAddServiceId('');
+  }
+
+  const subtotal = items.reduce((sum, item) => sum + Number(item.price || 0), 0);
   const taxed = Math.max(0, subtotal - Number(discount || 0)) * (Number(taxRate || 0) / 100);
   const total = Math.max(0, subtotal - Number(discount || 0)) + taxed;
 
@@ -62,9 +97,9 @@ export default function CheckoutPage() {
           discount: Number(discount || 0).toFixed(2),
           taxRate: Number(taxRate || 0),
           paymentMethod,
-          items: Object.entries(prices).map(([serviceId, price]) => ({
-            serviceId,
-            price: Number(price || 0).toFixed(2),
+          items: items.map((item) => ({
+            serviceId: item.serviceId,
+            price: Number(item.price || 0).toFixed(2),
           })),
         },
       });
@@ -118,18 +153,51 @@ export default function CheckoutPage() {
       <ErrorBanner message={error ?? token.error} />
       <Card>
         <CardContent className="space-y-3 pt-5">
-          {(token.data?.services ?? []).map((service) => (
-            <div key={service.serviceId} className="flex items-center justify-between gap-3">
-              <span className="text-sm">{service.name}</span>
-              <Input
-                className="w-28 text-right"
-                value={prices[service.serviceId] ?? ''}
-                onChange={(event) =>
-                  setPrices((current) => ({ ...current, [service.serviceId]: event.target.value }))
-                }
-              />
+          {items.map((item) => (
+            <div key={item.serviceId} className="flex items-center justify-between gap-3">
+              <span className="text-sm">{item.name}</span>
+              <div className="flex items-center gap-2">
+                <Input
+                  className="w-28 text-right"
+                  value={item.price}
+                  onChange={(event) => updatePrice(item.serviceId, event.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 text-muted-foreground"
+                  onClick={() => removeItem(item.serviceId)}
+                  aria-label={`Remove ${item.name}`}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ))}
+          {items.length === 0 && (
+            <p className="text-sm text-muted-foreground">No services on this bill yet.</p>
+          )}
+          <div className="flex items-center gap-2 border-t pt-3">
+            <Select value={addServiceId} onValueChange={setAddServiceId}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Add another service…" />
+              </SelectTrigger>
+              <SelectContent>
+                {addableServices.map((service) => (
+                  <SelectItem key={service.id} value={service.id}>
+                    {service.name} — {money(service.price)}
+                  </SelectItem>
+                ))}
+                {addableServices.length === 0 && (
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">No more services to add</div>
+                )}
+              </SelectContent>
+            </Select>
+            <Button type="button" variant="outline" size="sm" disabled={!addServiceId} onClick={addService}>
+              <Plus className="h-4 w-4" /> Add
+            </Button>
+          </div>
         </CardContent>
       </Card>
       <Card>

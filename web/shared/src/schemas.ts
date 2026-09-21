@@ -53,11 +53,13 @@ export const createServiceSchema = z.object({
   category: z.string().max(80).optional(),
   price: money,
   durationMinutes: z.number().int().min(1).max(600),
+  imageUrl: imageUrl.optional(),
 });
 export type CreateServiceInput = z.infer<typeof createServiceSchema>;
 
 export const updateServiceSchema = createServiceSchema.partial().extend({
   isActive: z.boolean().optional(),
+  imageUrl: imageUrl.nullable().optional(),
 });
 export type UpdateServiceInput = z.infer<typeof updateServiceSchema>;
 
