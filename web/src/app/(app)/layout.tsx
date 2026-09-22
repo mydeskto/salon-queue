@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import type { UserRole } from '@shared/index';
 import { homeFor, useAuth } from '@/lib/auth';
+import { FullWidthProvider } from '@/lib/page-width';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -48,7 +49,7 @@ const NAV: Record<UserRole, NavItem[]> = {
   receptionist: [
     { href: '/reception', label: 'Live queue', icon: CalendarClock },
     { href: '/reception/appointments', label: 'Appointments', icon: CalendarClock },
-    { href: '/reception/bills', label: 'Bills', icon: Receipt },
+    { href: '/reception/billing', label: 'Billing', icon: Receipt },
   ],
   employee: [{ href: '/reception', label: 'Live queue', icon: CalendarClock }],
   // Kiosk screens never see the staff app shell — they're redirected below.
@@ -65,6 +66,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [fullWidth, setFullWidth] = useState(false);
 
   useEffect(() => {
     setMobileNavOpen(false);
@@ -198,8 +200,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-7xl flex-1 overflow-y-auto px-6 py-8">
-          {children}
+        <main
+          className={cn(
+            'flex-1 overflow-y-auto px-6 py-8',
+            fullWidth ? 'w-full' : 'mx-auto w-full max-w-7xl',
+          )}
+        >
+          <FullWidthProvider setFullWidth={setFullWidth}>{children}</FullWidthProvider>
         </main>
       </div>
     </div>

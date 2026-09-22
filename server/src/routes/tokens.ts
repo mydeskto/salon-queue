@@ -44,7 +44,13 @@ tokensRouter.get(
     }
 
     const statuses = requested.length > 0 ? requested : ['waiting', 'in_service', 'awaiting_payment'];
-    const list = await listTokenSummaries(getDb(), salonId, statuses as TokenStatus[]);
+    let list = await listTokenSummaries(getDb(), salonId, statuses as TokenStatus[]);
+
+    const search = req.query.tokenNumber ? String(req.query.tokenNumber).trim().toLowerCase() : '';
+    if (search) {
+      list = list.filter((token) => token.tokenNumber.toLowerCase().includes(search));
+    }
+
     res.json(list);
   }),
 );

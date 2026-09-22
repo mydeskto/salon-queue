@@ -21,6 +21,25 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Fired whenever an authenticated request comes back 401 — the httpOnly
+ * cookie has expired or was invalidated server-side. AuthProvider subscribes
+ * to this so the whole app can react in one place (the session-expired
+ * dialog) instead of every page handling it independently.
+ */
+type SessionExpiredListener = () => void;
+const sessionExpiredListeners = new Set<SessionExpiredListener>();
+
+export function onSessionExpired(listener: SessionExpiredListener): () => void {
+  sessionExpiredListeners.add(listener);
+  return () => sessionExpiredListeners.delete(listener);
+}
+
+// Endpoints where a 401 is an expected, normal outcome (e.g. checking
+// whether a session exists at all) rather than a sign that a previously
+// valid session just died — these must never trigger the dialog.
+const SESSION_EXPIRY_EXEMPT_PATHS = ['/api/auth/login', '/api/auth/me', '/api/auth/logout'];
+
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   body?: unknown;
@@ -74,6 +93,9 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
 
   if (!response.ok) {
     const error = payload as { error?: string; details?: unknown } | null;
+    if (response.status === 401 && !SESSION_EXPIRY_EXEMPT_PATHS.includes(path)) {
+      sessionExpiredListeners.forEach((listener) => listener());
+    }
     throw new ApiError(error?.error ?? response.statusText, response.status, error?.details);
   }
   return payload as T;

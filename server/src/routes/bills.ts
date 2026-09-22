@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, ilike, inArray, lte, sql } from 'drizzle-orm';
 import {
   billItems,
   bills,
@@ -318,6 +318,7 @@ billsRouter.get(
     const salonId = resolveSalonId(req, (req.query.salonId as string) ?? null);
     const from = req.query.from ? new Date(String(req.query.from)) : null;
     const to = req.query.to ? new Date(String(req.query.to)) : null;
+    const search = req.query.tokenNumber ? String(req.query.tokenNumber).trim() : '';
 
     const conditions = [eq(bills.salonId, salonId)];
     if (from && !Number.isNaN(from.getTime())) {
@@ -330,7 +331,13 @@ billsRouter.get(
     const rows = await db
       .select({ id: bills.id })
       .from(bills)
-      .where(and(...conditions))
+      .innerJoin(tokens, eq(tokens.id, bills.tokenId))
+      .where(
+        and(
+          ...conditions,
+          search ? ilike(tokens.tokenNumber, `%${search}%`) : undefined,
+        ),
+      )
       .orderBy(desc(bills.createdAt))
       .limit(200);
 
